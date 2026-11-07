@@ -89,3 +89,107 @@ CREATE TABLE notificacao (
 );
 
 CREATE TABLE frete (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    embarcador_id UUID NOT NULL REFERENCES embarcador(id),
+    origem_endereco_id UUID NOT NULL REFERENCES endereco(id),
+    destino_endereco_id UUID NOT NULL REFERENCES endereco(id),
+    categoria_carga_id SMALLINT NOT NULL REFERENCES categoria_carga(id) ON DELETE RESTRICT,
+    tipo_carga VARCHAR(100) NOT NULL,
+    peso_kg NUMERIC(10, 2) NOT NULL,
+    dimensoes VARCHAR(100),
+    valor_fixo NUMERIC(12, 2) NOT NULL CHECK (valor_fixo >= 0),
+    status_frete status_frete_enum NOT NULL DEFAULT 'ABERTO',
+    criado_em TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE viagem (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    frete_id UUID NOT NULL REFERENCES frete(id),
+    motorista_id UUID NOT NULL REFERENCES motorista(id),
+    veiculo_id UUID NOT NULL REFERENCES veiculo(id),
+    valor_acordado NUMERIC(12, 2) NOT NULL CHECK (valor_acordado >= 0),
+    status_viagem status_viagem_enum NOT NULL DEFAULT 'AGUARDANDO_PAGAMENTO',
+    status_pagamento status_pagamento_enum NOT NULL DEFAULT 'PENDENTE',
+    data_inicio TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    data_fim TIMESTAMP
+);
+
+CREATE TABLE pagamento (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    viagem_id UUID NOT NULL REFERENCES viagem(id),
+    valor NUMERIC(12, 2) NOT NULL CHECK (valor >= 0),
+    forma_pagamento VARCHAR(40),
+    id_externo VARCHAR(100),
+    status_pagamento status_pagamento_enum NOT NULL DEFAULT 'PENDENTE'
+);
+
+CREATE TABLE comprovante_pod (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    viagem_id UUID NOT NULL REFERENCES viagem(id) ON DELETE CASCADE,
+    tipo_comprovante tipo_comprovante_enum NOT NULL,
+    url_arquivo TEXT NOT NULL,
+    latitude NUMERIC(10, 7),
+    longitude NUMERIC(10, 7),
+    data_registro TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE disputa (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    viagem_id UUID NOT NULL REFERENCES viagem(id),
+    motivo TEXT NOT NULL,
+    status_disputa status_disputa_enum NOT NULL DEFAULT 'ABERTA',
+    data_abertura TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    data_encerramento TIMESTAMP
+);
+
+CREATE TABLE historico_status_viagem (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    viagem_id UUID NOT NULL REFERENCES viagem(id) ON DELETE CASCADE,
+    status_anterior status_viagem_enum,
+    status_novo status_viagem_enum NOT NULL,
+    data_hora TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE mensagem_chat (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    viagem_id UUID NOT NULL REFERENCES viagem(id) ON DELETE CASCADE,
+    remetente_id UUID NOT NULL REFERENCES usuario(id),
+    mensagem TEXT NOT NULL,
+    data_hora TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE avaliacao (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    viagem_id UUID NOT NULL REFERENCES viagem(id) ON DELETE CASCADE,
+    avaliador_id UUID NOT NULL REFERENCES usuario(id),
+    avaliado_id UUID NOT NULL REFERENCES usuario(id),
+    nota SMALLINT NOT NULL CHECK (nota BETWEEN 1 AND 5),
+    comentario TEXT,
+    CONSTRAINT avaliacao_avaliador_diferente_avaliado CHECK (avaliador_id <> avaliado_id),
+    CONSTRAINT avaliacao_unica_por_viagem UNIQUE (viagem_id, avaliador_id, avaliado_id)
+);
+
+CREATE INDEX idx_embarcador_endereco ON embarcador(endereco_id);
+CREATE INDEX idx_transportadora_endereco ON transportadora(endereco_id);
+CREATE INDEX idx_motorista_transportadora ON motorista(transportadora_id);
+CREATE INDEX idx_motorista_categoria ON motorista(categoria_carga_preferencial_id);
+CREATE INDEX idx_veiculo_motorista ON veiculo(motorista_id);
+CREATE INDEX idx_documento_usuario ON documento(usuario_id);
+CREATE INDEX idx_notificacao_usuario ON notificacao(usuario_id);
+CREATE INDEX idx_frete_embarcador ON frete(embarcador_id);
+CREATE INDEX idx_frete_origem ON frete(origem_endereco_id);
+CREATE INDEX idx_frete_destino ON frete(destino_endereco_id);
+CREATE INDEX idx_frete_categoria ON frete(categoria_carga_id);
+CREATE INDEX idx_frete_status ON frete(status_frete);
+CREATE INDEX idx_viagem_frete ON viagem(frete_id);
+CREATE INDEX idx_viagem_motorista ON viagem(motorista_id);
+CREATE INDEX idx_viagem_veiculo ON viagem(veiculo_id);
+CREATE INDEX idx_viagem_status ON viagem(status_viagem);
+CREATE INDEX idx_pagamento_viagem ON pagamento(viagem_id);
+CREATE INDEX idx_comprovante_viagem ON comprovante_pod(viagem_id);
+CREATE INDEX idx_disputa_viagem ON disputa(viagem_id);
+CREATE INDEX idx_historico_viagem ON historico_status_viagem(viagem_id);
+CREATE INDEX idx_mensagem_viagem ON mensagem_chat(viagem_id);
+CREATE INDEX idx_mensagem_remetente ON mensagem_chat(remetente_id);
+CREATE INDEX idx_avaliacao_viagem ON avaliacao(viagem_id);
+CREATE INDEX idx_avaliacao_avaliado ON avaliacao(avaliado_id);
