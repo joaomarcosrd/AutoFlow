@@ -1,0 +1,12 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Rodar AutoFlow (Spring Boot)",
+            "request": "launch",
+            "mainClass": "br.com.autoflow.AutoFlowApplication",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

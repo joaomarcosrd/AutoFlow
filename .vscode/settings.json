@@ -1,0 +1,7 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "redhat.java",
+  "java.saveActions.organizeImports": true,
+  "java.server.launchMode": "Standard",
+  "java.configuration.updateBuildConfiguration": "automatic"
+}
